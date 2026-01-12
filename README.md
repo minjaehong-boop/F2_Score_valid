@@ -1,52 +1,30 @@
-# yolo-trt-eval
-## F2 Score
+# F2-Score Verification Report
 
-평가에는 IoU를 반영한 커스텀 F2-Score가 활용
+This report summarizes the F2-Score results for the different test cases.
 
+## Case 1_1: Single Prediction, Single Ground Truth
 
-$`Precision_{IoU}=\displaystyle\frac{\Sigma IoU_{TP}}{TP+FP}`$
+| Subcase     | TP | FP | FN | Precision               | Recall                  | F2-Score                | GT Coordinates | PR Coordinates | Description                               |
+| :---------- | :- | :- | :- | :---------------------- | :---------------------- | :---------------------- | :--- | :--- | :---------------------------------------- |
+| little_match| 1  | 0  | 0  | 0.14285714285387754     | 0.14285714285387754     | 0.14285714285387754     | (100,100,50,50) | (125,125,50,50) | Prediction and ground truth slightly overlap. |
+| big_match   | 1  | 0  | 0  | 0.9238168526000841      | 0.9238168526000841      | 0.9238168526000841      | (100,100,50,50) | (101,101,50,50) | Prediction and ground truth largely overlap.  |
+| max_match   | 1  | 0  | 0  | 0.9999999999600001      | 0.9999999999600001      | 0.99999999996           | (100,100,50,50) | (100,100,50,50) | Prediction and ground truth perfectly overlap.|
+| none_match  | 0  | 1  | 1  | 0.0                     | 0.0                     | 0                       | (100,100,50,50) | (150,150,50,50) | Prediction and ground truth do not overlap.   |
 
-$`Recall_{IoU}=\displaystyle\frac{\Sigma IoU_{TP}}{TP+FN}`$
+## Case 1_2: False Positive (FP)
 
-$`F2-Score_{IoU}=\displaystyle\frac{(1+2^2)\times(Precision_{IoU}\times Recall_{IoU})}{2^2\times Precision_{IoU}+Recall_{IoU}}`$
+| TP | FP | FN | Precision           | Recall             | F2-Score           | GT Coordinates | PR Coordinates | Description                               |
+| :- | :- | :- | :------------------ | :----------------- | :----------------- | :--- | :--- | :---------------------------------------- |
+| 1  | 1  | 0  | 0.46190842630004203 | 0.9238168526000841 | 0.7698473771667368 | (100,100,50,50) | (101,101,50,50), (300,300,10,10) | A prediction exists where there is no ground truth. |
 
-### TP
+## Case 2_1: False Negative (FN)
 
-![](doc/tp.png)
+| TP | FP | FN | Precision           | Recall              | F2-Score           | GT Coordinates | PR Coordinates | Description                               |
+| :- | :- | :- | :------------------ | :------------------ | :----------------- | :--- | :--- | :---------------------------------------- |
+| 1  | 0  | 1  | 0.9238168526000841  | 0.46190842630004203 | 0.5132315847778245 | (100,100,50,50), (200,200,20,20) | (101,101,50,50) | A ground truth exists where there is no prediction. |
 
-정답 오브젝트 가운데 예측 결과가 있는 오브젝트의 수
+## Case joongbok: Complex Case (Duplicate FP + FN)
 
-각 오브젝트마다 최소 IoU(=0.1)를 넘은 예측 결과들을 해당 오브젝트에 대한 예측으로 할당
-
-할당된 예측 가운데 해당 오브젝트와의 IoU가 가장 큰 예측 결과를 해당 오브젝트에 대한 최종 예측으로 결정
-
-최종 예측과 오브젝트 사이의 IoU값을 해당 오브젝트에 대한 예측 IoU값으로 사용
-
-IoU가 최소(0.1)를 넘는 예측 결과가 없는 오브젝트는 TP에서 제외 (FN)
-
-※ IOU_TP : TP인 오브젝트들 각각마다 IoU가 최대인 예측 결과 1개와의 IoU 값
-
-### FP
-
-![](doc/fp1.png)
-
-예측 결과 가운데 ‘특정한 오브젝트와 IoU가 최소 기준(=0.1) 이상이지만 할당되지 않은’ 예측 결과 수를 잘못된 예측으로 FP에 가산
-
-예를 들어 하나의 오브젝트에 대하여 두 개의 예측 결과가
-할당되는 경우, IoU가 최대인 결과는 TP, 그렇지 않은 결과는 FP
-
-FP를 줄이기 위해서는 NMS 혹은 그와 유사한 필터링을 통하여 불필요한 중복 예측 줄일 것
-
-### FN
-
-![](doc/fn.png)
-
-오브젝트 가운데 최소(0.1)를 넘는 예측 결과가 없는 오브젝트는 예측이 이루어지지 않은 오브젝트로 간주하여 FN으로 분류
-
-※ 모든 예측 결과는 IoU가 가장 큰 하나의 오브젝트에만 할당됩니다. 따라서 하나의 오브젝트가 여러 예측 결과를 할당받을 수는 있지만 하나의 예측 결과가 여러 오브젝트에 할당되는 일은 없습니다.
-
-※ 아무 오브젝트에도 할당되지 않은(min IoU_obj < 0.1) 예측 결과는 점수 계산에 포함되지 않습니다.
-
-![](doc/fp2.png)
-
-실제로 존재하지 않는 객체(예: 건물의 창문을 차량으로 잘못 예측한 경우)일 때 이를 평가에서 어떻게 처리할 것인지에 대한 방법을 추가
+| TP | FP | FN | Precision           | Recall              | F2-Score            | GT Coordinates | PR Coordinates | Description                               |
+| :- | :- | :- | :------------------ | :------------------ | :------------------ | :--- | :--- | :---------------------------------------- |
+| 1  | 1  | 1  | 0.3403361344423417  | 0.3403361344423417  | 0.34033613444234173 | (100,100,50,50), (200,200,50,50) | (105,105,50,50), (95,95,50,50) | One ground truth is predicted multiple times (duplicate FP), and another ground truth is missed (FN). |
